@@ -1,11 +1,12 @@
+import { db } from '../db';
+import { membersTable } from '../db/schema';
 import { type CreateMemberInput, type Member } from '../schema';
 
-export async function createMember(input: CreateMemberInput): Promise<Member> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new member profile associated with a user
-    // and persisting all the university and library information in the database.
-    return Promise.resolve({
-        id: 0, // Placeholder ID
+export const createMember = async (input: CreateMemberInput): Promise<Member> => {
+  try {
+    // Insert member record
+    const result = await db.insert(membersTable)
+      .values({
         user_id: input.user_id,
         university_name: input.university_name,
         library_head_name: input.library_head_name,
@@ -19,9 +20,15 @@ export async function createMember(input: CreateMemberInput): Promise<Member> {
         opac_url: input.opac_url,
         repository_status: input.repository_status,
         book_collection_count: input.book_collection_count,
-        accreditation_status: input.accreditation_status,
-        membership_status: 'Pending',
-        created_at: new Date(),
-        updated_at: new Date()
-    } as Member);
-}
+        accreditation_status: input.accreditation_status
+        // membership_status defaults to 'Pending' in schema
+      })
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Member creation failed:', error);
+    throw error;
+  }
+};

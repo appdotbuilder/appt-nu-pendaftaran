@@ -1,8 +1,16 @@
+import { db } from '../db';
+import { membersTable } from '../db/schema';
 import { type Member } from '../schema';
 
 export async function getAllMembers(): Promise<Member[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all member profiles from the database.
-    // This is primarily for admin use to manage all members.
-    return Promise.resolve([]);
+  try {
+    const results = await db.select()
+      .from(membersTable)
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to get all members:', error);
+    throw error;
+  }
 }

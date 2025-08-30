@@ -1,19 +1,38 @@
+import { db } from '../db';
+import { registrationsTable } from '../db/schema';
 import { type UploadDocumentInput, type Registration } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function uploadDocument(input: UploadDocumentInput): Promise<Registration> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is uploading and associating receipt or certificate documents
-    // with a registration record. Admin can upload PDF files for members to download.
-    return Promise.resolve({
-        id: input.registration_id,
-        member_id: 1, // Placeholder
-        registration_type: 'Pendaftaran Baru',
-        payment_proof_url: null,
-        payment_status: 'Confirmed',
-        admin_notes: null,
-        receipt_url: input.document_type === 'receipt' ? input.document_url : null,
-        certificate_url: input.document_type === 'certificate' ? input.document_url : null,
-        created_at: new Date(),
+export const uploadDocument = async (input: UploadDocumentInput): Promise<Registration> => {
+  try {
+    // First, verify the registration exists
+    const existingRegistration = await db.select()
+      .from(registrationsTable)
+      .where(eq(registrationsTable.id, input.registration_id))
+      .execute();
+
+    if (existingRegistration.length === 0) {
+      throw new Error(`Registration with id ${input.registration_id} not found`);
+    }
+
+    // Prepare update data based on document type
+    const updateData = input.document_type === 'receipt'
+      ? { receipt_url: input.document_url }
+      : { certificate_url: input.document_url };
+
+    // Update the registration record with the document URL
+    const result = await db.update(registrationsTable)
+      .set({
+        ...updateData,
         updated_at: new Date()
-    } as Registration);
-}
+      })
+      .where(eq(registrationsTable.id, input.registration_id))
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Document upload failed:', error);
+    throw error;
+  }
+};
